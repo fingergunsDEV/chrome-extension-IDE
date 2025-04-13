@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Chrome Extension Builder</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+	<style>
+		:root {
+			--primary-color: #4a6cf7;
+			--primary-hover: #3a5de6;
+			--secondary-color: #6c757d;
+			--background-color: #f8f9fa;
+			--sidebar-bg: #1e293b;
+			--text-color: #343a40;
+			--text-light: #f8f9fa;
+			--border-radius: 8px;
+			--transition-speed: 0.3s;
+			--box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
+
+		body {
+			font-family: 'Inter', system-ui, -apple-system, sans-serif;
+			background-color: var(--background-color);
+			color: var(--text-color);
+			height: 100vh;
+			overflow: hidden;
+		}
+
+		.layout {
+			display: flex;
+			width: 100%;
+			height: 100vh;
+		}
+
+		/* Sidebar */
+		.sidebar {
+			width: 250px;
+			background: var(--sidebar-bg);
+			color: var(--text-light);
+			display: flex;
+			flex-direction: column;
+			transition: width var(--transition-speed);
+			overflow-y: auto;
+		}
+
+		.sidebar-header {
+			padding: 15px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+		}
+
+		.sidebar-logo {
+			max-width: 100%;
+			height: 40px;
+		}
+
+		.sidebar-nav {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.sidebar-section-header {
+			display: flex;
+			align-items: center;
+			font-size: 0.8rem;
+			text-transform: uppercase;
+			letter-spacing: 0.5px;
+			color: rgba(255, 255, 255, 0.6);
+			font-weight: 600;
+			padding: 15px 15px 5px;
+		}
+
+		#fileTree {
+			list-style: none;
+			margin-bottom: 15px;
+		}
+
+		#fileTree li {
+			padding: 8px 15px;
+			cursor: pointer;
+			border-left: 3px solid transparent;
+			transition: background 0.2s ease;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		#fileTree li:hover {
+			background: rgba(255, 255, 255, 0.1);
+			border-left: 3px solid var(--primary-color);
+		}
+
+		#fileTree li.active {
+			background: rgba(255, 255, 255, 0.15);
+			border-left: 3px solid var(--primary-color);
+			font-weight: 500;
+		}
+
+		.sidebar-nav-item {
+			display: flex;
+			align-items: center;
+			padding: 10px 15px;
+			color: var(--text-light);
+			text-decoration: none;
+			transition: background 0.2s ease;
+			border-left: 3px solid transparent;
+			cursor: pointer;
+			gap: 10px;
+		}
+
+		.sidebar-nav-item:hover {
+			background: rgba(255, 255, 255, 0.1);
+			border-left: 3px solid var(--primary-color);
+		}
+
+		.sidebar-nav-item.active {
+			background: rgba(255, 255, 255, 0.15);
+			border-left: 3px solid var(--primary-color);
+			font-weight: 500;
+		}
+
+		.sidebar-nav-item i {
+			width: 20px;
+			text-align: center;
+		}
+
+		.sidebar-footer {
+			padding: 10px 15px;
+			border-top: 1px solid rgba(255, 255, 255, 0.1);
+			font-size: 0.8rem;
+			color: rgba(255, 255, 255, 0.6);
+			text-align: center;
+		}
+
+		/* Main Content */
+		.content {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			overflow: hidden;
+		}
+
+		.editor-container {
+			flex: 1;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 20px;
+			padding: 15px;
+			overflow: hidden;
+		}
+
+		/* Editor Pane */
+		.editor-pane {
+			display: flex;
+			flex-direction: column;
+			gap: 15px;
+			overflow-y: auto;
+		}
+
+		.editor-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.editor-header h1 {
+			font-size: 1.3rem;
+			font-weight: 600;
+		}
+
+		.file-info {
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			font-size: 0.9rem;
+			color: var(--secondary-color);
+			background: rgba(0, 0, 0, 0.05);
+			padding: 5px 10px;
+			border-radius: 4px;
+			margin-bottom: 8px;
+		}
+
+		.editor-wrapper {
+			position: relative;
+			flex: 1;
+			min-height: 300px;
+		}
+
+		textarea#editor {
+			width: 100%;
+			height: 100%;
+			min-height: 300px;
+			font-family: 'Fira Code', 'Courier New', monospace;
+			font-size: 14px;
+			line-height: 1.5;
+			padding: 15px;
+			border: 1px solid #ddd;
+			border-radius: var(--border-radius);
+			resize: none;
+			transition: border 0.2s ease;
+		}
+
+		textarea#editor:focus {
+			outline: none;
+			border-color: var(--primary-color);
+			box-shadow: 0 0 0 2px rgba(74, 108, 247, 0.2);
+		}
+
+		/* Buttons */
+		.button-group {
+			display: flex;
+			gap: 10px;
+			margin-top: 5px;
+		}
+
+		button {
+			background: var(--primary-color);
+			color: white;
+			border: none;
+			padding: 8px 12px;
+			border-radius: var(--border-radius);
+			cursor: pointer;
+			font-weight: 500;
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			transition: background-color 0.2s ease;
+			box-shadow: var(--box-shadow);
+		}
+
+		button:hover {
+			background-color: var(--primary-hover);
+		}
+
+		button i {
+			font-size: 0.9rem;
+		}
+
+		button.secondary {
+			background-color: var(--secondary-color);
+		}
+
+		button.outline {
+			background-color: transparent;
+			color: var(--primary-color);
+			border: 1px solid var(--primary-color);
+		}
+
+		button.outline:hover {
+			background-color: rgba(74, 108, 247, 0.1);
+		}
+
+		/* Extension Settings */
+		.settings-section {
+			background: white;
+			border-radius: var(--border-radius);
+			padding: 15px;
+			margin-bottom: 15px;
+			box-shadow: var(--box-shadow);
+		}
+
+		.settings-section h3 {
+			font-size: 1rem;
+			margin-bottom: 10px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.input-group {
+			margin-bottom: 15px;
+		}
+
+		.input-group label {
+			display: block;
+			margin-bottom: 5px;
+			font-weight: 500;
+			font-size: 0.9rem;
+		}
+
+		input[type="file"],
+		input[type="text"],
+		input[type="number"],
+		select {
+			width: 100%;
+			padding: 8px;
+			border: 1px solid #ddd;
+			border-radius: var(--border-radius);
+			transition: border 0.2s ease;
+		}
+
+		input:focus,
+		select:focus {
+			outline: none;
+			border-color: var(--primary-color);
+		}
+
+		/* Collapsible Section */
+		.section-title {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 1rem;
+			font-weight: 500;
+			margin-bottom: 10px;
+			cursor: pointer;
+			padding: 5px 0;
+			user-select: none;
+		}
+
+		.section-title i {
+			transition: transform 0.2s ease;
+		}
+
+		.section-title.collapsed i {
+			transform: rotate(-90deg);
+		}
+
+		.section-content {
+			overflow: hidden;
+			transition: max-height 0.2s ease;
+			max-height: 1000px;
+		}
+
+		.section-content.collapsed {
+			max-height: 0;
+		}
+
+		/* Tab System */
+		.tab-container {
+			display: none;
+			flex-direction: column;
+			height: 100%;
+		}
+
+		.tab-container.active {
+			display: flex;
+		}
+
+		/* Preview Pane */
+		.preview-pane {
+			border: 1px solid #ddd;
+			border-radius: var(--border-radius);
+			overflow: hidden;
+			background: #fff;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.preview-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 8px 12px;
+			background: #f5f5f5;
+			border-bottom: 1px solid #ddd;
+		}
+
+		.preview-header h2 {
+			font-size: 1rem;
+			font-weight: 500;
+			margin: 0;
+		}
+
+		.preview-content {
+			flex: 1;
+			overflow: hidden;
+		}
+
+		.preview-pane iframe {
+			width: 100%;
+			height: 100%;
+			border: none;
+		}
+
+		/* Analysis Content */
+		.analysis-content {
+			padding: 15px;
+			height: 100%;
+			overflow-y: auto;
+		}
+
+		.analysis-card {
+			background: white;
+			border-radius: var(--border-radius);
+			padding: 15px;
+			margin-bottom: 15px;
+			box-shadow: var(--box-shadow);
+		}
+
+		.analysis-card h3 {
+			font-size: 1rem;
+			margin-bottom: 10px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.seo-item {
+			display: flex;
+			align-items: flex-start;
+			margin-bottom: 10px;
+			padding-bottom: 10px;
+			border-bottom: 1px solid #eee;
+		}
+
+		.seo-item:last-child {
+			border-bottom: none;
+			margin-bottom: 0;
+			padding-bottom: 0;
+		}
+
+		.seo-item i {
+			margin-right: 10px;
+			margin-top: 3px;
+		}
+
+		.seo-item.good i {
+			color: #28a745;
+		}
+
+		.seo-item.warning i {
+			color: #ffc107;
+		}
+
+		.seo-item.error i {
+			color: #dc3545;
+		}
+
+		.seo-item-content {
+			flex: 1;
+		}
+
+		.seo-item-title {
+			font-weight: 500;
+			margin-bottom: 3px;
+		}
+
+		.seo-item-description {
+			font-size: 0.9rem;
+			color: var(--secondary-color);
+		}
+
+		/* Responsive Layout */
+		@media (max-width: 1000px) {
+			.editor-container {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		@media (max-width: 768px) {
+			.layout {
+				flex-direction: column;
+			}
+
+			.sidebar {
+				width: 100%;
+				height: auto;
+				max-height: 200px;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<div class="layout">
+		<!-- Sidebar with File List -->
+		<aside class="sidebar">
+			<div class="sidebar-header">
+				<img src="https://cdn.prod.website-files.com/65db95957d65c02ae759f762/66fca6720ecaf4e682af0a99_blue%20logo%20new.avif" style="flex:1;width:8rem;">
+				<i class="fas fa-puzzle-piece fa-lg"></i>
+				<span>Extension Builder</span>
+			</div>
+			<div class="sidebar-nav">
+				<div class="sidebar-section">
+					<div class="sidebar-section-header">
+						<i class="fas fa-folder-open"></i>
+						<span>FILES</span>
+					</div>
+					<ul id="fileTree">
+						<li class="active"><i class="fas fa-file-code"></i> manifest.json</li>
+						<li><i class="fas fa-file-code"></i> popup.html</li>
+						<li><i class="fas fa-file-code"></i> popup.js</li>
+						<li><i class="fas fa-file-code"></i> background.js</li>
+					</ul>
+					<div class="sidebar-nav-item" id="addNewFile">
+						<i class="fas fa-plus"></i>
+						<span>Add New File</span>
+					</div>
+				</div>
+
+				<div class="sidebar-section">
+					<div class="sidebar-section-header">
+						<i class="fas fa-tools"></i>
+						<span>TOOLS</span>
+					</div>
+					<div class="sidebar-nav-item active" id="editorTab">
+						<i class="fas fa-code"></i>
+						<span>Editor</span>
+					</div>
+					<div class="sidebar-nav-item" id="analysisTab">
+						<i class="fas fa-chart-bar"></i>
+						<span>Analysis</span>
+					</div>
+					<div class="sidebar-nav-item" id="settingsTab">
+						<i class="fas fa-cog"></i>
+						<span>Settings</span>
+					</div>
+				</div>
+			</div>
+			<div class="sidebar-footer">
+				v1.0
+			</div>
+		</aside>
+
+		<!-- Main Content Area -->
+		<div class="content">
+			<!-- Editor Tab -->
+			<div id="editor-tab" class="tab-container active">
+				<div class="editor-container">
+					<!-- Editor Pane -->
+					<div class="editor-pane">
+						<div class="editor-header">
+							<h1>Chrome Extension Builder</h1>
+						</div>
+						<div class="file-info">
+							<i class="fas fa-file-code"></i>
+							<span id="fileLabel">manifest.json</span>
+						</div>
+						<div class="editor-wrapper">
+							<textarea id="editor">{
+  "manifest_version": 3,
+  "name": "My Extension",
+  "version": "1.0",
+  "description": "A simple Chrome extension",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  }
+}</textarea>
+						</div>
+						<div class="button-group">
+							<button id="updatePreview">
+								<i class="fas fa-sync-alt"></i> Update Preview
+							</button>
+							<button id="saveFile">
+								<i class="fas fa-save"></i> Save
+							</button>
+							<button id="downloadExt" class="outline">
+								<i class="fas fa-download"></i> Download Extension
+							</button>
+						</div>
+
+						<!-- Extension Assets Section -->
+						<div class="section">
+							<div class="section-title" id="assetsSection">
+								<i class="fas fa-chevron-down"></i> Extension Assets
+							</div>
+							<div class="section-content">
+								<div class="input-group">
+									<label for="iconUpload">Icon (PNG, 128x128):</label>
+									<input type="file" id="iconUpload" accept="image/png" />
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Preview Pane -->
+					<div class="preview-pane">
+						<div class="preview-header">
+							<h2>Live Preview</h2>
+							<button class="secondary" id="refreshPreview">
+								<i class="fas fa-sync"></i>
+							</button>
+						</div>
+						<div class="preview-content">
+							<iframe id="preview"></iframe>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Analysis Tab -->
+			<div id="analysis-tab" class="tab-container">
+				<div class="editor-container">
+					<div class="analysis-content">
+						<h1>Extension Analysis</h1>
+						<p>Check your extension for best practices and issues.</p>
+
+						<div class="analysis-card">
+							<h3><i class="fas fa-check-circle"></i> Manifest Validation</h3>
+							<div id="manifest-analysis">
+								<div class="seo-item good">
+									<i class="fas fa-check-circle"></i>
+									<div class="seo-item-content">
+										<div class="seo-item-title">Valid Manifest Format</div>
+										<div class="seo-item-description">Your manifest.json follows the Chrome extension specification.</div>
+									</div>
+								</div>
+								<div class="seo-item warning">
+									<i class="fas fa-exclamation-triangle"></i>
+									<div class="seo-item-content">
+										<div class="seo-item-title">Recommended Fields</div>
+										<div class="seo-item-description">Add author and homepage_url to your manifest.</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="analysis-card">
+							<h3><i class="fas fa-shield-alt"></i> Security Check</h3>
+							<div id="security-analysis">
+								<div class="seo-item warning">
+									<i class="fas fa-exclamation-triangle"></i>
+									<div class="seo-item-content">
+										<div class="seo-item-title">Content Security Policy</div>
+										<div class="seo-item-description">Add a Content Security Policy for better security.</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="button-group">
+							<button id="runAnalysis">
+								<i class="fas fa-sync-alt"></i> Run Analysis
+							</button>
+							<button id="exportReport" class="outline">
+								<i class="fas fa-file-export"></i> Export Report
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Settings Tab -->
+			<div id="settings-tab" class="tab-container">
+				<div class="editor-container">
+					<div class="analysis-content">
+						<h1>Settings</h1>
+						<p>Configure your extension builder preferences.</p>
+
+						<div class="settings-section">
+							<h3><i class="fas fa-sliders-h"></i> Editor Settings</h3>
+							<div class="input-group">
+								<label for="autosave">Auto-save (seconds):</label>
+								<input type="number" id="autosave" value="30" min="0" max="300" />
+							</div>
+							<div class="input-group">
+								<label for="theme">Editor Theme:</label>
+								<select id="theme">
+									<option value="light">Light</option>
+									<option value="dark">Dark</option>
+								</select>
+							</div>
+						</div>
+
+						<div class="settings-section">
+							<h3><i class="fas fa-puzzle-piece"></i> Extension Defaults</h3>
+							<div class="input-group">
+								<label for="default-name">Default Name:</label>
+								<input type="text" id="default-name" value="My Chrome Extension" />
+							</div>
+							<div class="input-group">
+								<label for="default-version">Default Version:</label>
+								<input type="text" id="default-version" value="1.0.0" />
+							</div>
+						</div>
+
+						<div class="button-group">
+							<button id="saveSettings">
+								<i class="fas fa-save"></i> Save Settings
+							</button>
+							<button id="resetSettings" class="outline">
+								<i class="fas fa-undo"></i> Reset to Defaults
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		// Basic functionality for the UI
+		document.addEventListener('DOMContentLoaded', function() {
+			// Tab switching
+			document.getElementById('editorTab').addEventListener('click', () => showTab('editor'));
+			document.getElementById('analysisTab').addEventListener('click', () => showTab('analysis'));
+			document.getElementById('settingsTab').addEventListener('click', () => showTab('settings'));
+			// Toggle sections
+			document.getElementById('assetsSection').addEventListener('click', toggleSection);
+			// File tree functionality
+			const fileTreeItems = document.querySelectorAll('#fileTree li');
+			fileTreeItems.forEach(item => {
+				item.addEventListener('click', function() {
+					fileTreeItems.forEach(i => i.classList.remove('active'));
+					this.classList.add('active');
+					// Update file label and editor content (simplified for demo)
+					const fileName = this.textContent.trim();
+					document.getElementById('fileLabel').textContent = fileName;
+					// In a real app, you would load the actual file content
+					if (fileName.includes('manifest.json')) {
+						document.getElementById('editor').value = JSON.stringify({
+							"manifest_version": 3,
+							"name": "My Extension",
+							"version": "1.0",
+							"description": "A simple Chrome extension"
+						}, null, 2);
+					} else if (fileName.includes('popup.html')) {
+						document.getElementById('editor').value = '<!DOCTYPE html>\n<html>\n<head>\n  <title>My Extension</title>\n</head>\n<body>\n  <h1>Hello Extension!</h1>\n</body>\n</html>';
+					} else {
+						document.getElementById('editor').value = '// ' + fileName;
+					}
+				});
+			});
+			// Preview functionality
+			document.getElementById('updatePreview').addEventListener('click', updatePreview);
+			document.getElementById('refreshPreview').addEventListener('click', updatePreview);
+			// Initialize preview
+			updatePreview();
+		});
+		// Show selected tab
+		function showTab(tabName) {
+			// Hide all tabs
+			document.querySelectorAll('.tab-container').forEach(tab => {
+				tab.classList.remove('active');
+			});
+			// Show selected tab
+			document.getElementById(tabName + '-tab').classList.add('active');
+			// Update nav
+			document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+				item.classList.remove('active');
+			});
+			// Mark active nav item
+			if (tabName === 'editor') {
+				document.getElementById('editorTab').classList.add('active');
+			} else if (tabName === 'analysis') {
+				document.getElementById('analysisTab').classList.add('active');
+			} else if (tabName === 'settings') {
+				document.getElementById('settingsTab').classList.add('active');
+			}
+		}
+		// Toggle section visibility
+		function toggleSection() {
+			this.classList.toggle('collapsed');
+			const content = this.nextElementSibling;
+			if (this.classList.contains('collapsed')) {
+				content.classList.add('collapsed');
+			} else {
+				content.classList.remove('collapsed');
+			}
+		}
+		// Update preview pane
+		function updatePreview() {
+			const fileName = document.getElementById('fileLabel').textContent;
+			const content = document.getElementById('editor').value;
+			if (fileName.includes('.html')) {
+				const iframe = document.getElementById('preview');
+				const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+				iframeDoc.open();
+				iframeDoc.write(content);
+				iframeDoc.close();
+			} else if (fileName.includes('.json')) {
+				try {
+					const jsonObj = JSON.parse(content);
+					const iframe = document.getElementById('preview');
+					const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+					iframeDoc.open();
+					iframeDoc.write(`
+            <html>
+            <head>
+              <style>
+                body { font-family: sans-serif; padding: 20px; }
+                .json-key { color: #0077aa; }
+                .json-value { color: #669900; }
+                .json-string { color: #aa5500; }
+              </style>
+            </head>
+            <body>
+              <h2>Manifest Preview</h2>
+              <pre>${formatJSON(content)}</pre>
+            </body>
+            </html>
+          `);
+					iframeDoc.close();
+				} catch (e) {
+					showError("Invalid JSON: " + e.message);
+				}
+			} else {
+				const iframe = document.getElementById('preview');
+				const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+				iframeDoc.open();
+				iframeDoc.write(`
+          <html>
+          <head>
+            <style>
+              body { font-family: monospace; padding: 20px; white-space: pre; }
+            </style>
+          </head>
+          <body>${content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</body>
+          </html>
+        `);
+				iframeDoc.close();
+			}
+		}
+		// Format JSON for display
+		function formatJSON(json) {
+			return json
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
+					let cls = 'json-value';
+					if (/^"/.test(match)) {
+						if (/:$/.test(match)) {
+							cls = 'json-key';
+						} else {
+							cls = 'json-string';
+						}
+					}
+					return '<span class="' + cls + '">' + match + '</span>';
+				});
+		}
+		// Show error
+		function showError(message) {
+			const iframe = document.getElementById('preview');
+			const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+			iframeDoc.open();
+			iframeDoc.write(`
+        <html>
+        <head>
+          <style>
+            body { font-family: sans-serif; padding: 20px; }
+            .error { color: #dc3545; }
+          </style>
+        </head>
+        <body>
+          <h2 class="error">Error</h2>
+          <p class="error">${message}</p>
+        </body>
+        </html>
+      `);
+			iframeDoc.close();
+		}
+	</script>
+	<script>
+		// Add CodeMirror or Monaco Editor for better code editing experience
+		function initializeEditor() {
+			const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+				lineNumbers: true,
+				mode: 'javascript',
+				theme: 'default',
+				autoCloseBrackets: true
+			});
+		}
+	</script>
+</body>
+
+</html>
