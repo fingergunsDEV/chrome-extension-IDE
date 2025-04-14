@@ -816,10 +816,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	// Event listeners
 	function setupEventListeners() {
-		try {
-			document
-				.getElementById("editorTab")
-				.addEventListener("click", () => showTab("editor"));
+    try {
+        document.getElementById("editorTab").addEventListener("click", () => showTab("editor"));
 			document.getElementById("analysisTab").addEventListener("click", () => {
 				showTab("analysis");
 				runAnalysis();
@@ -862,11 +860,76 @@ document.addEventListener("DOMContentLoaded", function () {
 				saveProject();
 			});
 
-			document.addEventListener("keydown", handleKeyboardShortcuts);
-		} catch (e) {
-			console.error("Event listener setup failed:", e);
-		}
-	}
+			const keydownHandler = (event) => handleKeyboardShortcuts(event);
+        document.addEventListener("keydown", keydownHandler);
+        window.addEventListener("unload", () => document.removeEventListener("keydown", keydownHandler));
+    } catch (e) {
+        console.error("Event listener setup failed:", e);
+        showError(`Event listener setup failed: ${e.message}`);
+    }
+}
+
+function handleKeyboardShortcuts(event) {
+    try {
+        if ((event.ctrlKey || event.metaKey) && !["INPUT", "TEXTAREA"].includes(event.target.tagName)) {
+            switch (event.key) {
+                case "s":
+                    event.preventDefault();
+                    saveProject();
+                    showNotification("Project saved!");
+                    break;
+                case "p":
+                    event.preventDefault();
+                    updatePreview();
+                    showNotification("Preview updated!");
+                    break;
+                case "n":
+                    event.preventDefault();
+                    addNewFile();
+                    showNotification("New file added!");
+                    break;
+                case "r":
+                    event.preventDefault();
+                    if (document.getElementById("analysis-tab").classList.contains("active")) {
+                        runAnalysis();
+                        showNotification("Analysis completed!");
+                    }
+                    break;
+                case "d":
+                    event.preventDefault();
+                    downloadExtension();
+                    showNotification("Extension downloaded!");
+                    break;
+                case "t":
+                    event.preventDefault();
+                    const tabs = ["editor", "analysis", "settings"];
+                    const currentTab = tabs.find(tab => document.getElementById(`${tab}-tab`).classList.contains("active"));
+                    const nextTab = tabs[(tabs.indexOf(currentTab) + 1) % tabs.length];
+                    showTab(nextTab);
+                    showNotification(`Switched to ${nextTab} tab`);
+                    break;
+            }
+        }
+    } catch (e) {
+        console.error("Keyboard shortcut handling failed:", e);
+        showError(`Keyboard shortcut error: ${e.message}`);
+    }
+}
+
+function showNotification(message) {
+    const notification = document.createElement("div");
+    notification.textContent = message;
+    notification.style.position = "fixed";
+    notification.style.bottom = "20px";
+    notification.style.right = "20px";
+    notification.style.background = "#28a745";
+    notification.style.color = "white";
+    notification.style.padding = "10px";
+    notification.style.borderRadius = "4px";
+    notification.style.zIndex = "1000";
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2000);
+}
 
 	// Initialize editor mode based on file type
 	fileManager.updateEditorMode = function () {
